@@ -4,52 +4,45 @@ import tqdm as stqdm
 
 
 def preprocess_vehicles_data(df_vehicles):
-    # Create an empty list to store the processed dataframes
     processed_dfs = []
 
-    for type_vhcl, df in stqdm(df_vehicles.items()):
+    for type_vhcl, df in stqdm.tqdm(df_vehicles.items()):
         st.write(type_vhcl)
         st.dataframe(df.head(1000))
 
-        # cumulate the columns to
-
-        # Add a new column to indicate the type of vehicle
+        # Ajouter une colonne indiquant le type de véhicule
         df["type_vhcl"] = type_vhcl
 
-        # Assuming 'code commune de résidence' and 'libellé commune de résidence' are the identifiers
+        # Supprimer les colonnes inutiles si elles existent
         df = df.drop(
             columns=[
                 col
-                for col in [
-                    "Crit'Air",
-                    "crit_air",
-                    "Catégorie de véhicules",
-                ]
-                if col in list(df.columns)
+                for col in ["Crit'Air", "crit_air", "Catégorie de véhicules"]
+                if col in df.columns
             ]
         )
 
-        # Étape 1: Regrouper les colonnes d'années en une seule colonne 'Year'
+        # Transformer les colonnes d'années en une seule colonne 'Year'
         df_melted = df.melt(
             id_vars=[
                 "Code commune de résidence",
                 "libellé commune de résidence",
                 "Carburant",
                 "statut",
-                "type_vhcl",  # Include the new column in the id_vars
+                "type_vhcl",
             ],
             var_name="Year",
             value_name="Value",
         )
 
-        # Étape 2: Créer des colonnes distinctes pour chaque type de carburant
+        # Créer des colonnes distinctes pour chaque type de carburant
         df_pivot = df_melted.pivot_table(
             index=[
                 "Code commune de résidence",
                 "libellé commune de résidence",
                 "Year",
                 "statut",
-                "type_vhcl",  # Include the new column in the index
+                "type_vhcl",
             ],
             columns="Carburant",
             values="Value",
@@ -60,32 +53,28 @@ def preprocess_vehicles_data(df_vehicles):
         df_pivot["Year"] = df_pivot["Year"].astype(str)
         df_pivot["statut"] = df_pivot["statut"].apply(
             lambda x: (
-                "Professionnel" if x == "PRO" else ("Particulier" if x == "PAR" else x)
+                "Professionnel" if x == "PRO" else "Particulier" if x == "PAR" else x
             )
         )
 
-        try:
-            df_pivot["NB_VP_THERMIQUE"] = (
-                df_pivot["Diesel thermique"]
-                + df_pivot["Essence thermique"]
-                + df_pivot["Diesel hybride non rechargeable"]
-                + df_pivot["Essence hybride non rechargeable"]
-            )
-        except:
-            df_pivot["NB_VP_THERMIQUE"] = (
-                df_pivot["Diesel thermique"] + df_pivot["Essence thermique"]
-            ) + df_pivot["Diesel hybride non rechargeable"]
-
-        df_pivot["NB_VP_RECHARGEABLE"] = (
-            df_pivot["Diesel hybride rechargeable"]
-            + df_pivot["Essence hybride rechargeable"]
+        # Calculer les types de véhicules
+        df_pivot["NB_VP_THERMIQUE"] = (
+            df_pivot.get("Diesel thermique", 0)
+            + df_pivot.get("Essence thermique", 0)
+            + df_pivot.get("Diesel hybride non rechargeable", 0)
+            + df_pivot.get("Essence hybride non rechargeable", 0)
         )
 
-        df_pivot["NB_VP_EL"] = df_pivot["Electrique et hydrogène"]
+        df_pivot["NB_VP_RECHARGEABLE"] = df_pivot.get(
+            "Diesel hybride rechargeable", 0
+        ) + df_pivot.get("Essence hybride rechargeable", 0)
+
+        df_pivot["NB_VP_EL"] = df_pivot.get("Electrique et hydrogène", 0)
 
         st.dataframe(df_pivot.tail(1000))
         st.write(df_pivot.shape)
 
+        # Renommer les colonnes
         df_pivot = df_pivot.rename(
             columns={
                 "Code commune de résidence": "Code_Commune",
@@ -96,6 +85,7 @@ def preprocess_vehicles_data(df_vehicles):
             }
         )
 
+        # Garder uniquement les colonnes pertinentes
         df_pivot = df_pivot[
             [
                 "Code_Commune",
@@ -109,10 +99,8 @@ def preprocess_vehicles_data(df_vehicles):
             ]
         ]
 
-        # Append the processed dataframe to the list
         processed_dfs.append(df_pivot)
 
-    # Concatenate all processed dataframes
     global_df = pd.concat(processed_dfs, ignore_index=True)
     st.dataframe(global_df.tail(1000))
     st.write(global_df.shape)
@@ -120,7 +108,11 @@ def preprocess_vehicles_data(df_vehicles):
     global_df.to_pickle("data/1_Processed/Donnees_EV.pkl")
 
 
-if not "raw_vehicles_data" in st.session_state["data"]:
+# **Correction de l'erreur de session_state**
+if "data" not in st.session_state:
+    st.session_state["data"] = {}
+
+if "raw_vehicles_data" not in st.session_state["data"]:
     st.session_state["data"]["raw_vehicles_data"] = {
         type_vhcl: pd.read_excel(
             f"data/vehicules/parc_{type_vhcl}_com_2011_2024.xlsx",
