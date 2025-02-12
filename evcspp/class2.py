@@ -96,8 +96,8 @@ class Model:
             g.add_nodes_from(active_nodes)
             for i in active_nodes:
                 for j in active_nodes:
-                    if self.adjacency[i, j] > 0:
-                        g.add_edge(i, j, weight=self.adjacency[i, j])
+                    if self.adjacency[i, j] > 0 and self.shortest_paths[i, j] <= self.D:
+                        g.add_edge(i, j)
 
             # Trouver les nœuds amovibles
             removable_nodes = self.find_removable_nodes(g, x)
@@ -151,9 +151,9 @@ class Model:
 
 
 if __name__ == "__main__":
-    construction_costs = [0.11, 0.41, 0.30, 0.1, 0.2, 0.5, 0.35, 0.4, 0.2]
-    capacities = [1, 1, 1, 1, 1, 1, 1, 1, 1]
-    demands = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    costs1 = [0.11, 0.41, 0.30, 0.1, 0.2, 0.5, 0.35, 0.4, 0.2]
+    capacities1 = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    demands1 = [1, 1, 1, 1, 1, 1, 1, 1, 1]
     adjacency_matrix = np.array(
         [
             [0, 1, 5, 1, 0, 1, 0, 0, 0],
@@ -180,15 +180,29 @@ if __name__ == "__main__":
             [0, 0, 0, 0, 1, 0, 0, 0, 0],
         ]
     )
-    d = 2
 
-    solution = Model(adjacency_matrix2, construction_costs, demands, capacities, d)
+    adjacency_matrix3 = np.array([
+    [0, 1, 1, 0, 0, 0],
+    [1, 0, 1, 1, 0, 0],
+    [1, 1, 0, 1, 1, 0],
+    [0, 1, 1, 0, 1, 1],
+    [0, 0, 1, 1, 0, 1],
+    [0, 0, 0, 1, 1, 0]
+    ])
+    
+    costs2 = np.array([10, 15, 20, 25, 12, 18])
+    demands2 = np.array([5, 8, 6, 7, 5, 6])
+    capacities2 = np.array([6, 7, 8, 9, 5, 4])
+    d = 2
+    alpha = .8
+    
+    solution = Model(adjacency_matrix, costs1, demands1, capacities1, d)
     solution.print_distances()
     # Afficher le graphe
     solution.display_graph()
 
     # Exécuter l'algorithme glouton
-    result = solution.greedy_algorithm(1)
+    result = solution.greedy_algorithm(alpha)
     print("Solution finale :", result)
 
     # Afficher les positions des stations de recharge
