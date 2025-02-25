@@ -36,14 +36,15 @@ class Model:
                 shortest_path_matrix[source, target] = length
 
         self.shortest_paths = shortest_path_matrix
-        self.selected_nodes = set(range(self.nodes))  # Tous les nœuds sont sélectionnés au départ
-    
+        self.selected_nodes = set(
+            range(self.nodes)
+        )  # Tous les nœuds sont sélectionnés au départ
+
     def print_distances(self):
         print("Distances entre chaque nœud :")
         for i in range(self.nodes):
             for j in range(self.nodes):
                 print(f"Distance de {i} à {j} : {self.shortest_paths[i, j]}")
-
 
     def get_close_indices(self, i, alpha):
         close_nodes = set()
@@ -65,7 +66,7 @@ class Model:
             ):
                 return False
         return True
-    
+
     @staticmethod
     def find_removable_nodes(g, solution):
         active_nodes = [i for i in range(len(solution)) if solution[i] == 1]
@@ -86,7 +87,9 @@ class Model:
 
         # Vérifier si la solution initiale est valide
         if not self.is_demand_satisfied(x, alpha):
-            print("Le problème est infaisable : la solution initiale (1, 1, ..., 1) ne satisfait pas les demandes.")
+            print(
+                "Le problème est infaisable : la solution initiale (1, 1, ..., 1) ne satisfait pas les demandes."
+            )
             return None
 
         while True:
@@ -114,7 +117,9 @@ class Model:
 
             # Vérifier si la nouvelle solution est valide
             if not self.is_demand_satisfied(x, alpha):
-                print(f"La solution n'est plus valide après la suppression du nœud {node_to_remove}, annulation de la suppression.")
+                print(
+                    f"La solution n'est plus valide après la suppression du nœud {node_to_remove}, annulation de la suppression."
+                )
                 x[node_to_remove] = 1
                 break
 
@@ -133,20 +138,35 @@ class Model:
         )
         plt.show()
 
-    def display_charging_position(self, solution):
+    def display_charging_position(self, solution, labels=None):
+        if labels is None:
+            labels = list(
+                range(len(solution))
+            )  # Utilise les indices si aucun label n'est fourni
+
+        # Création d'un mapping entre indices et labels
+        label_mapping = {i: labels[i] for i in range(len(labels))}
+
+        # Coloration des nœuds
         node_colors = [
             "red" if solution[i] == 1 else "lightblue" for i in range(len(solution))
         ]
 
         plt.figure(figsize=(5, 5))
+        pos = nx.spring_layout(self.graph)  # Définit la disposition des nœuds
+
+        # Dessiner le graphe avec des nœuds renommés par les labels
         nx.draw(
             self.graph,
+            pos,
+            labels=label_mapping,  # Appliquer les labels aux nœuds
             with_labels=True,
             node_color=node_colors,
             edge_color="gray",
             node_size=500,
             font_size=12,
         )
+
         plt.show()
 
 
@@ -181,21 +201,23 @@ if __name__ == "__main__":
         ]
     )
 
-    adjacency_matrix3 = np.array([
-    [0, 1, 1, 0, 0, 0],
-    [1, 0, 1, 1, 0, 0],
-    [1, 1, 0, 1, 1, 0],
-    [0, 1, 1, 0, 1, 1],
-    [0, 0, 1, 1, 0, 1],
-    [0, 0, 0, 1, 1, 0]
-    ])
-    
+    adjacency_matrix3 = np.array(
+        [
+            [0, 1, 1, 0, 0, 0],
+            [1, 0, 1, 1, 0, 0],
+            [1, 1, 0, 1, 1, 0],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 1, 1, 0, 1],
+            [0, 0, 0, 1, 1, 0],
+        ]
+    )
+
     costs2 = np.array([10, 15, 20, 25, 12, 18])
     demands2 = np.array([5, 8, 6, 7, 5, 6])
     capacities2 = np.array([6, 7, 8, 9, 5, 4])
     d = 2
-    alpha = .8
-    
+    alpha = 0.8
+
     solution = Model(adjacency_matrix, costs1, demands1, capacities1, d)
     solution.print_distances()
     # Afficher le graphe
