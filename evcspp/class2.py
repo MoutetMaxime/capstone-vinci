@@ -81,7 +81,7 @@ class Model:
 
         return removable_nodes
 
-    def greedy_algorithm(self, alpha):
+    def greedy_algorithm(self, alpha, verbose=False):
         # Initialisation de tous les nœuds actifs (tous les nœuds sont sélectionnés)
         x = np.ones(len(self.costs))
 
@@ -104,26 +104,31 @@ class Model:
 
             # Trouver les nœuds amovibles
             removable_nodes = self.find_removable_nodes(g, x)
-            print(f"Nœuds amovibles : {removable_nodes}")
+            if verbose:
+                print(f"Nœuds amovibles : {removable_nodes}")
 
             if not removable_nodes:
-                print("Aucun nœud amovible trouvé, sortie de la boucle.")
+                if verbose:
+                    print("Aucun nœud amovible trouvé, sortie de la boucle.")
                 break
 
             # Sélectionner le nœud à supprimer en fonction du coût
             node_to_remove = max(removable_nodes, key=lambda node: self.costs[node])
-            print(f"Suppression du nœud : {node_to_remove}")
+            if verbose:
+                print(f"Suppression du nœud : {node_to_remove}")
             x[node_to_remove] = 0
 
             # Vérifier si la nouvelle solution est valide
             if not self.is_demand_satisfied(x, alpha):
-                print(
-                    f"La solution n'est plus valide après la suppression du nœud {node_to_remove}, annulation de la suppression."
-                )
+                if verbose:
+                    print(
+                        f"La solution n'est plus valide après la suppression du nœud {node_to_remove}, annulation de la suppression."
+                    )
                 x[node_to_remove] = 1
                 break
 
-        print("Solution finale trouvée.")
+        if verbose:
+            print("Solution finale trouvée.")
         return x
 
     def display_graph(self):
