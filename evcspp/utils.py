@@ -27,6 +27,8 @@ def create_nodes(file_path):
 
 def get_routing_between_points(starting_point, ending_point):
     # Base URL
+
+    # Base URL
     base_url = "https://data.geopf.fr/navigation/itineraire"
 
     # Parameters as a dictionary
@@ -54,21 +56,13 @@ def get_routing_between_points(starting_point, ending_point):
     # Make the request
     response = requests.get(full_url, headers={"Accept": "application/json"})
 
-    retries = 3
-    for _ in range(retries):
-        response = requests.get(full_url, headers={"Accept": "application/json"})
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("distance")
-        elif response.status_code == 429:
-            print("Rate limit exceeded, retrying...")
-            time.sleep(10)  # Sleep for 10 seconds before retrying
-        else:
-            print(f"Error: {response.status_code}, {response.text}")
-            return None
+    # Check response
+    if response.status_code == 200:
+        data = response.json()
+    else:
+        print(f"Error: {response.status_code}")
 
-    print("Max retries reached. Please try again later.")
-    return None
+    return data.get("distance")
 
 
 def construct_adjacency(nodes):

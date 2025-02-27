@@ -12,7 +12,11 @@ def get_demands(nodes):
 
 
 def get_costs(nodes):
-    return np.array([node["rev_med"] for node in nodes])
+    implantation_cost = 60000 / (365 * 15)  # 60000€ / 15 years
+    pi = 20  # €/charge
+    demand = get_demands(nodes)
+    costs = implantation_cost - pi * demand
+    return costs
 
 
 def get_capacities(nodes):
@@ -36,6 +40,8 @@ print(adjacency)
 
 Ds = [10, 20, 30, 40, 50]
 alphas = [0.2, 0.4, 0.6, 0.8, 1]
+Ds = [10]
+alphas = [0.2]
 results = []
 
 for D in Ds:

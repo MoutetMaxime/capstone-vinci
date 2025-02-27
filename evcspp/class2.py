@@ -113,10 +113,7 @@ class Model:
                 break
 
             # Sélectionner le nœud à supprimer en fonction du coût
-            node_to_remove = max(
-                removable_nodes,
-                key=lambda node: (self.costs[node] - self.demands[node] * 20),
-            )
+            node_to_remove = max(removable_nodes, key=lambda node: self.costs[node])
             if verbose:
                 print(f"Suppression du nœud : {node_to_remove}")
             x[node_to_remove] = 0
