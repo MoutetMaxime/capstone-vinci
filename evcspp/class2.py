@@ -90,7 +90,7 @@ class Model:
             print(
                 "Le problème est infaisable : la solution initiale (1, 1, ..., 1) ne satisfait pas les demandes."
             )
-            return None
+            return np.zeros(len(self.costs))
 
         while True:
             # Création du graphe induit G^
@@ -113,7 +113,10 @@ class Model:
                 break
 
             # Sélectionner le nœud à supprimer en fonction du coût
-            node_to_remove = max(removable_nodes, key=lambda node: self.costs[node])
+            node_to_remove = max(
+                removable_nodes,
+                key=lambda node: (self.costs[node] - self.demands[node] * 20),
+            )
             if verbose:
                 print(f"Suppression du nœud : {node_to_remove}")
             x[node_to_remove] = 0

@@ -20,16 +20,18 @@ def get_capacities(nodes):
 
 
 nodes = create_nodes("../data/inputs_1km.csv")
-
 demands = get_demands(nodes)
 costs = get_costs(nodes)
 capacities = get_capacities(nodes)
 adjacency = construct_adjacency(nodes)
+with open("adjacency.npy", "wb") as f:
+    np.save(f, adjacency)
 
 # Paramètres
 print(demands)
 print(costs)
 print(capacities)
+print(adjacency)
 
 
 Ds = [10, 20, 30, 40, 50]
@@ -60,4 +62,4 @@ for D in Ds:
 import pandas as pd
 
 df = pd.DataFrame(results)
-df.to_csv("results.csv", index=False)
+df.to_csv("results_profit.csv", index=False)

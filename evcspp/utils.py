@@ -1,3 +1,4 @@
+import time
 from urllib.parse import urlencode
 
 import numpy as np
@@ -53,15 +54,21 @@ def get_routing_between_points(starting_point, ending_point):
     # Make the request
     response = requests.get(full_url, headers={"Accept": "application/json"})
 
-    # Check response
-    if response.status_code == 200:
-        data = response.json()
-        # print("Response:", data)
-    else:
-        print(f"Error: {response.status_code}, {response.text}")
-        return None
+    retries = 3
+    for _ in range(retries):
+        response = requests.get(full_url, headers={"Accept": "application/json"})
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("distance")
+        elif response.status_code == 429:
+            print("Rate limit exceeded, retrying...")
+            time.sleep(10)  # Sleep for 10 seconds before retrying
+        else:
+            print(f"Error: {response.status_code}, {response.text}")
+            return None
 
-    return data.get("distance")
+    print("Max retries reached. Please try again later.")
+    return None
 
 
 def construct_adjacency(nodes):
