@@ -4,7 +4,7 @@ import geopandas as gpd
 import numpy as np
 import requests
 from class2 import Model
-from utils import construct_adjacency, create_nodes
+from utils_algo import construct_adjacency, create_nodes
 
 
 def get_demands(nodes):
