@@ -3,7 +3,11 @@ import networkx as nx
 import numpy as np
 
 
-class Model:
+class EVCSPP:
+    """
+    Class to solve the Electric Vehicle Charging Station Placement Problem (EVCSPP).
+    """
+
     def __init__(
         self,
         adjacency: np.array,
@@ -16,7 +20,6 @@ class Model:
         self.costs = costs
         self.demands = demands
         self.capacities = capacities
-
         self.nodes = len(adjacency)
         self.D = D
 
@@ -36,24 +39,18 @@ class Model:
                 shortest_path_matrix[source, target] = length
 
         self.shortest_paths = shortest_path_matrix
-        self.selected_nodes = set(
-            range(self.nodes)
-        )  # Tous les nœuds sont sélectionnés au départ
+        self.selected_nodes = set(range(self.nodes))
 
-    def print_distances(self):
-        print("Distances entre chaque nœud :")
-        for i in range(self.nodes):
-            for j in range(self.nodes):
-                print(f"Distance de {i} à {j} : {self.shortest_paths[i, j]}")
+    def get_close_indices(self, i: int, alpha: float):
+        """
+        Returns the indices of the nodes that are close (distance <= alpha*D) to node i.
+        """
+        return set(np.where(self.shortest_paths[i] <= alpha * self.D)[0])
 
-    def get_close_indices(self, i, alpha):
-        close_nodes = set()
-        for j in range(self.nodes):
-            if self.shortest_paths[i, j] <= alpha * self.D:
-                close_nodes.add(j)
-        return close_nodes
-
-    def is_demand_satisfied(self, solution, alpha):
+    def is_demand_satisfied(self, solution: np.array, alpha: float):
+        """
+        Checks if the demand constraint is satisfied for the given solution.
+        """
         for i in range(self.nodes):
             if (
                 sum(
@@ -62,13 +59,16 @@ class Model:
                         for node in self.get_close_indices(i, alpha)
                     ]
                 )
-                < self.demands[i]
+                < self.demands[i]  # Demand is not satisfied
             ):
                 return False
         return True
 
     @staticmethod
-    def find_removable_nodes(g, solution):
+    def find_removable_nodes(g: nx.graph, solution: np.array):
+        """
+        Finds the removable nodes in the solution that can be removed while keeping the graph connected.
+        """
         active_nodes = [i for i in range(len(solution)) if solution[i] == 1]
         removable_nodes = []
 
@@ -81,7 +81,10 @@ class Model:
 
         return removable_nodes
 
-    def greedy_algorithm(self, alpha, verbose=False):
+    def greedy_algorithm(self, alpha: float, verbose=False):
+        """
+        Executes the greedy algorithm to solve the EVCSPP
+        """
         # Initialisation de tous les nœuds actifs (tous les nœuds sont sélectionnés)
         x = np.ones(len(self.costs))
 
@@ -173,65 +176,3 @@ class Model:
         )
 
         plt.show()
-
-
-if __name__ == "__main__":
-    costs1 = [0.11, 0.41, 0.30, 0.1, 0.2, 0.5, 0.35, 0.4, 0.2]
-    capacities1 = [1, 1, 1, 1, 1, 1, 1, 1, 1]
-    demands1 = [1, 1, 1, 1, 1, 1, 1, 1, 1]
-    adjacency_matrix = np.array(
-        [
-            [0, 1, 5, 1, 0, 1, 0, 0, 0],
-            [1, 0, 0, 1, 1, 0, 1, 0, 0],
-            [5, 0, 0, 1, 0, 0, 0, 1, 0],
-            [1, 1, 1, 0, 1, 0, 0, 0, 0],
-            [0, 1, 0, 1, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0],
-        ]
-    )
-    adjacency_matrix2 = np.array(
-        [
-            [0, 1, 1, 1, 0, 1, 0, 0, 0],
-            [1, 0, 0, 1, 1, 0, 1, 0, 0],
-            [1, 0, 0, 1, 0, 0, 0, 1, 0],
-            [1, 1, 1, 0, 1, 0, 0, 0, 0],
-            [0, 1, 0, 1, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0],
-        ]
-    )
-
-    adjacency_matrix3 = np.array(
-        [
-            [0, 1, 1, 0, 0, 0],
-            [1, 0, 1, 1, 0, 0],
-            [1, 1, 0, 1, 1, 0],
-            [0, 1, 1, 0, 1, 1],
-            [0, 0, 1, 1, 0, 1],
-            [0, 0, 0, 1, 1, 0],
-        ]
-    )
-
-    costs2 = np.array([10, 15, 20, 25, 12, 18])
-    demands2 = np.array([5, 8, 6, 7, 5, 6])
-    capacities2 = np.array([6, 7, 8, 9, 5, 4])
-    d = 2
-    alpha = 0.8
-
-    solution = Model(adjacency_matrix, costs1, demands1, capacities1, d)
-    solution.print_distances()
-    # Afficher le graphe
-    solution.display_graph()
-
-    # Exécuter l'algorithme glouton
-    result = solution.greedy_algorithm(alpha)
-    print("Solution finale :", result)
-
-    # Afficher les positions des stations de recharge
-    if result is not None:
-        solution.display_charging_position(result)

@@ -3,19 +3,32 @@ from urllib.parse import urlencode
 import geopandas as gpd
 import numpy as np
 import requests
-from class2 import Model
-from utils_algo import construct_adjacency, create_nodes
+from Evcspp import EVCSPP
+
+from model.utils import construct_adjacency, create_nodes
 
 
-def get_demands(nodes):
+def get_demands_from_pop(nodes):
     return np.array([node["pop"] for node in nodes])
 
 
-def get_costs(nodes):
+def get_demands(nodes):
+    return np.array([node["demand"] for node in nodes])
+
+
+def get_costs_by_charge(nodes):
     implantation_cost = 60000 / (365 * 15)  # 60000€ / 15 years
-    pi = 20  # €/charge
-    demand = get_demands(nodes)
+    pi = 20  # €/kWh
+    demand = get_demands_from_pop(nodes)
     costs = implantation_cost - pi * demand
+    return costs
+
+
+def get_costs_by_kWh(nodes):
+    implantation_cost = 60000 / (365 * 15)  # 60000€ / 15 years
+    pi = 0.40  # €/kWh
+    demand = get_demands(nodes)
+    costs = implantation_cost + pi * demand
     return costs
 
 
@@ -24,12 +37,12 @@ def get_capacities(nodes):
 
 
 nodes = create_nodes("../data/inputs_1km.csv")
-demands = get_demands(nodes)
-costs = get_costs(nodes)
+demands = get_demands_from_pop(nodes)
+costs = get_costs_by_charge(nodes)
 capacities = get_capacities(nodes)
-adjacency = construct_adjacency(nodes)
-with open("adjacency.npy", "wb") as f:
-    np.save(f, adjacency)
+adjacency = np.load("adjacency.npy")
+# with open("adjacency.npy", "wb") as f:
+#     np.save(f, adjacency)
 
 # Paramètres
 print(demands)
@@ -38,18 +51,16 @@ print(capacities)
 print(adjacency)
 
 
-Ds = [10, 20, 30, 40, 50]
-alphas = [0.2, 0.4, 0.6, 0.8, 1]
-Ds = [10]
-alphas = [0.2]
+Ds = np.linspace(10, 60, 10)
+alphas = np.linspace(0.1, 0.6, 20)
 results = []
 
 for D in Ds:
     for alpha in alphas:
         print(f"D = {D}, alpha = {alpha}")
-        solution = Model(adjacency, costs, demands, capacities, D)
+        solution = EVCSPP(adjacency, costs, demands, capacities, D)
         result = solution.greedy_algorithm(alpha)
-        optimized_func = costs @ result
+        optimized_func = -costs @ result
         print("Fonction objectif optimisée :", optimized_func)
         print("Nombre de stations :", np.sum(result))
 
@@ -68,4 +79,4 @@ for D in Ds:
 import pandas as pd
 
 df = pd.DataFrame(results)
-df.to_csv("results_profit.csv", index=False)
+df.to_csv("results_profit_withdemand.csv", index=False)
