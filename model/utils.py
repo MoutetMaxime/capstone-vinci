@@ -90,7 +90,7 @@ def construct_adjacency(nodes):
     return adjacency_matrix
 
 
-nodes = [
+nodes_iris = [
     {
         "id": 0,
         "name": "Escoublac",
