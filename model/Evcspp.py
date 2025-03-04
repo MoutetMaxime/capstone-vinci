@@ -69,7 +69,9 @@ class EVCSPP:
         """
         Finds the removable nodes in the solution that can be removed while keeping the graph connected.
         """
-        active_nodes = [i for i in range(len(solution)) if solution[i] == 1]
+        active_nodes = [i for i in range(len(solution)) if solution[i] >= 1]
+        # shuffle active nodes to avoid always removing the same node
+        # np.random.shuffle(active_nodes)
         removable_nodes = []
 
         for node in active_nodes:
@@ -78,7 +80,7 @@ class EVCSPP:
 
             if temp_nodes and nx.is_connected(g.subgraph(temp_nodes)):
                 removable_nodes.append(node)
-
+        print(removable_nodes)
         return removable_nodes
 
     def greedy_algorithm(self, alpha: float, verbose=False):
@@ -86,7 +88,7 @@ class EVCSPP:
         Executes the greedy algorithm to solve the EVCSPP
         """
         # Initialisation de tous les nœuds actifs (tous les nœuds sont sélectionnés)
-        x = np.ones(len(self.costs))
+        x = 3 * np.ones(len(self.costs))
 
         # Vérifier si la solution initiale est valide
         if not self.is_demand_satisfied(x, alpha):
@@ -98,7 +100,7 @@ class EVCSPP:
         while True:
             # Création du graphe induit G^
             g = nx.Graph()
-            active_nodes = [i for i in range(self.nodes) if x[i] == 1]
+            active_nodes = [i for i in range(self.nodes) if x[i] >= 1]
             g.add_nodes_from(active_nodes)
             for i in active_nodes:
                 for j in active_nodes:
@@ -119,7 +121,7 @@ class EVCSPP:
             node_to_remove = max(removable_nodes, key=lambda node: self.costs[node])
             if verbose:
                 print(f"Suppression du nœud : {node_to_remove}")
-            x[node_to_remove] = 0
+            x[node_to_remove] -= 1
 
             # Vérifier si la nouvelle solution est valide
             if not self.is_demand_satisfied(x, alpha):
@@ -127,7 +129,7 @@ class EVCSPP:
                     print(
                         f"La solution n'est plus valide après la suppression du nœud {node_to_remove}, annulation de la suppression."
                     )
-                x[node_to_remove] = 1
+                x[node_to_remove] += 1
                 break
 
         if verbose:
