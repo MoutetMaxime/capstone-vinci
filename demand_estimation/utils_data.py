@@ -1,14 +1,11 @@
 import matplotlib.pyplot as plt 
 import matplotlib.patches as mpatches
 import json
-import folium
 import geopandas as gpd
-import pyogrio
 from shapely.ops import split
 from shapely.geometry import MultiLineString, LineString, Point, Polygon, MultiPolygon
 import pandas as pd
 import numpy as np
-from folium.plugins import MarkerCluster
 import random
 import requests
 import json
@@ -19,6 +16,8 @@ from tqdm import tqdm
 import time
 from itertools import combinations
 import os
+from scipy.spatial.distance import euclidean
+from itertools import combinations
 
 
 def get_routing(start_point, end_point, crs='EPSG:4326', delay=0):
@@ -583,3 +582,44 @@ def add_revenus_iris(file_iris_revenus, gdf_iris):
     gdf_merged = gdf_merged.rename(columns={'DISP_MED20': 'revenues'})
 
     return gdf_merged
+
+def get_data_carroyee_city(file_carreaux, geometry_city, crs='EPSG:4326'):
+    gdf_carroye = gpd.read_file(file_carreaux)
+    gdf_carroye = gdf_carroye.to_crs(crs)
+    gdf_carroye_city = gdf_carroye[gdf_carroye.geometry.intersects(geometry_city)]
+    gdf_carroye_city = gdf_carroye_city.reset_index(drop=True)
+    return gdf_carroye_city
+
+
+def get_euclidian_adjacency_from_df(gdf, crs_angles='EPSG:4326', crs_meters='EPSG:2154'):
+    
+    gdf = gdf.reset_index(drop=True)
+
+    # Create an empty DataFrame to store distances
+    distances_df = pd.DataFrame(np.nan, index=gdf.index, columns=gdf.index)
+
+    # add information for dataset
+    gdf['geometry'] = gdf['geometry'].to_crs(crs_meters) 
+    gdf['centroid'] = gdf.geometry.centroid
+
+    # Compute distances efficiently (only once per pair)
+    for i, j in combinations(gdf.index, 2):
+        # Get the distance in km
+        dist = euclidean(gdf.at[i, "centroid"].coords[0], gdf.at[j, "centroid"].coords[0]) / 1_000
+        distances_df.at[i, j] = dist
+        distances_df.at[j, i] = dist  # Use symmetry
+
+    # Set diagonal to 0 (distance to itself)
+    np.fill_diagonal(distances_df.values, 0)
+
+    # Merge the distance DataFrame back into the GeoDataFrame
+    gdf = gdf.join(distances_df)
+    gdf = gdf.rename(columns={col: f"dist_{col}" for col in gdf.columns if col in gdf.index})
+
+    gdf['geometry'] = gdf['geometry'].to_crs(crs_angles)
+    gdf['centroid'] = gdf['centroid'].to_crs(crs_angles)
+    gdf['longitude'], gdf['latitude'] = zip(*gdf['centroid'].apply(lambda p: (p.x, p.y)))
+
+    adjacency_matrix = distances_df.values
+
+    return gdf, adjacency_matrix
