@@ -303,8 +303,15 @@ def add_population_iris(file_iris, gdf_iris):
 
     # Drop redundant IRIS column if needed
     gdf_merged.drop(columns=["IRIS"], inplace=True)
+    gdf_merged = gdf_merged.rename(columns={'P21_PMEN':'population'})
 
     return gdf_merged
+
+def add_area_gdf(gdf, crs_meters='EPSG:2154', crs_angles='EPSG:4326'):
+    gdf.set_crs(crs_meters, inplace=True, allow_override=True)  # Example: Setting to WGS84 (latitude/longitude)
+    gdf['area'] = gdf.geometry.area
+    gdf.set_crs(crs_angles, inplace=True, allow_override=True)
+    return gdf
 
 def merge_iris_pop_and_traffic(df_iris_pop, df_iris_traffic):
     df_iris_traffic["code_iris"] = df_iris_traffic["code_iris"].astype(str)
@@ -549,3 +556,30 @@ def get_df_OD_city(file_OD, code_insee):
     df_city_voit_unique = df_city_voit_unique.rename(columns={'size': 'cnt'})
 
     return df_city_voit_unique
+
+def add_area_gdf(gdf, crs_meters='EPSG:2154', crs_angles='EPSG:4326'):
+    gdf = gdf.to_crs(crs_meters)  # Example: Setting to WGS84 (latitude/longitude)
+    gdf['area_km2'] = gdf.geometry.area / 10**6
+    gdf = gdf.to_crs(crs_angles)
+    return gdf
+
+def add_revenus_iris(file_iris_revenus, gdf_iris):
+    
+    df_iris_revenus = pd.read_csv(file_iris_revenus, sep = ";")  # Load first sheet
+    
+    # Ensure both columns are the same type (string is safer for joins)
+    gdf_iris["code_iris"] = gdf_iris["code_iris"].astype(str)
+    df_iris_revenus["IRIS"] = df_iris_revenus["IRIS"].astype(str)
+
+    # Perform the left join
+    cols_to_keep = ["IRIS", "DISP_MED20"]
+    gdf_merged = gdf_iris.merge(df_iris_revenus[cols_to_keep], left_on="code_iris", right_on="IRIS", how="left")
+
+    # Drop redundant IRIS column if needed
+    gdf_merged.drop(columns=["IRIS"], inplace=True)
+
+    gdf_merged['DISP_MED20'] = pd.to_numeric(gdf_merged['DISP_MED20'], errors='coerce')
+    
+    gdf_merged = gdf_merged.rename(columns={'DISP_MED20': 'revenues'})
+
+    return gdf_merged

@@ -8,14 +8,15 @@ from shapely.geometry import LineString
 
 from utils_data import get_contours_city_ign, get_iris_contours_city, add_population_iris, get_vehicles_city 
 from utils_data import get_adjacency_from_gdf, get_centroids_communes, get_contours_city_simplifie, get_df_OD_city, restrict_area, get_routing, get_traffic_demand_per_iris
-from utils_data import merge_iris_pop_and_traffic
+from utils_data import merge_iris_pop_and_traffic, add_revenus_iris, add_area_gdf
 
 data_dir = '../data'
 
 # Input files
-file_ign_region = f'{data_dir}/BDCARTO/44_Loire_Atlantique/1_DONNEES_LIVRAISON_2024-12-00080/data.gpkg'
+file_ign_region = f'{data_dir}/BDCARTO/44_Loire_Atlantique/data.gpkg'
 file_iris_contours = f"{data_dir}/IRIS/contours-iris.gpkg"
-file_iris_population = f"{data_dir}/IRIS/base-ic-logement-2021_xlsx/base-ic-logement-2021.xlsx"
+file_iris_population = f"{data_dir}/IRIS/base-ic-logement-2021.xlsx"
+file_iris_revenus = f"{data_dir}/IRIS/iris_revenus.csv"
 
 file_OD = f'{data_dir}/RP2020_MOBPRO_csv/FD_MOBPRO_2020.csv'
 file_contours_simplifies = f'{data_dir}/communes-version-simplifiee.geojson'
@@ -66,15 +67,23 @@ export_file_np_adjacency=f"{processed_dir}/adjacency_matrix_{code_insee}.npy"
 gdf_ign_city, geometry_ign_city = get_contours_city_ign(file_ign_region, code_insee)
 gdf_iris = get_iris_contours_city(file_iris_contours, code_insee)
 
+    
+
 # Load or compute population demand
 if not os.path.exists(export_file_iris_pop_demand):
     print(f"Computing demand related to population...")
+    gdf_iris = add_area_gdf(gdf_iris, crs_meters=crs_meters, crs_angles=crs_angles)
+    gdf_iris = add_revenus_iris(file_iris_revenus, gdf_iris)
     gdf_iris_population = add_population_iris(file_iris_population, gdf_iris)
-    pop_city = gdf_iris_population.P21_PMEN.sum() # population de la ville à partir de IRIS
+    gdf_iris_population['density_km2'] = gdf_iris_population['population'] / gdf_iris_population['area_km2']
+
+    pop_city = gdf_iris_population.population.sum() # population de la ville à partir de IRIS
     df_vehicules = get_vehicles_city(code_insee, files_vehicules, processed_files_vehicules, export_file_vehicles)
     ratio_ev_pop = ((df_vehicules['NB_EL']+df_vehicules['NB_RECHARGEABLE'])/pop_city).iloc[0]
-    gdf_iris_population['demand_pop_kWh'] = gdf_iris_population['P21_PMEN'] * ratio_ev_pop * gdf_iris_population['ratio_appart'] * avg_demand_hab
-    gdf_iris_population.drop(columns=['P21_PMEN', 'ratio_appart'], inplace=True)
+    gdf_iris_population['demand_pop_kWh'] = gdf_iris_population['population'] * ratio_ev_pop * gdf_iris_population['ratio_appart'] * avg_demand_hab
+    # gdf_iris_population.drop(columns=['P21_PMEN', 'ratio_appart'], inplace=True)
+    # gdf_iris_population.rename(columns={'P21_PMEN':'population'})
+    gdf_iris_population.drop(columns=['ratio_appart', 'area_km2'], inplace=True)
     gdf_iris_population.to_file(export_file_iris_pop_demand, driver="GeoJSON")
     print(f"Demand related to population saved at : {export_file_iris_pop_demand}")
 else:
@@ -126,7 +135,7 @@ if not os.path.exists(export_file_df_adjacency):
     gdf_city_iris_with_dist, adjacency_matrix = get_adjacency_from_gdf(gdf_iris_all_demands, delay=waiting_time_api, crs_angles=crs_angles, crs_meters=crs_meters)
     
     # Clean columns
-    cols = ['nom_iris', 'geometry', 'demand_pop_kWh', 'demand_traffic_kWh', 'total_demand_kWh']
+    cols = ['nom_iris', 'geometry', 'population', 'density_km2', 'revenues', 'demand_pop_kWh', 'demand_traffic_kWh', 'total_demand_kWh']
     cols += [f'dist_{i}' for i in range(len(gdf_city_iris_with_dist))]
 
     gdf_city_iris_with_dist = gdf_city_iris_with_dist[cols]
