@@ -132,6 +132,8 @@ class EVCSPP:
         """
         total_satisfaction = 0
         for i in range(self.nodes):
+            # if the demand is greater than the capacity, we only add the demand that can be served
+            # if the capacity is greater than the demand, we only add the demand
             total_satisfaction += min(
                 sum(
                     [
