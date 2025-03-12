@@ -61,7 +61,7 @@ export_file_iris_pop_demand = f"{processed_dir}/demand_per_iris_hab_{code_insee}
 export_file_iris_traffic_demand = f"{processed_dir}/traffic_demand_per_iris_{code_insee}.geojson"
 export_file_iris_all_demand = f"{processed_dir}/all_demand_per_iris_{code_insee}.geojson"
 export_file_df_adjacency=f"{processed_dir}/gdf_city_iris_with_dist_{code_insee}.csv"
-export_file_np_adjacency=f"{processed_dir}/adjacency_matrix_{code_insee}.npy"
+export_file_np_adjacency=f"{processed_dir}/adjacency_matrix_iris_{code_insee}.npy"
 
 # Creation des fichiers
 gdf_ign_city, geometry_ign_city = get_contours_city_ign(file_ign_region, code_insee)
