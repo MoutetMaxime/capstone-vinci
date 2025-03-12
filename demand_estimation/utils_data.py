@@ -469,6 +469,51 @@ def get_traffic_demand_per_iris(df_od, gdf_city_contours, gdf_city_iris, ratio_e
 
     return gdf_city_iris, df_od
 
+# Généralisation de la fonction pour les IRIS (car ici les carreaux ne couvrent pas toute la ville)
+# Au lieu de normaliser par la distance de route qui passe par la ville, on normalise par la distance de route qui passe par les carreaux
+def get_traffic_demand_per_carreau(df_od, gdf_city_carreau, ratio_ev, conso_kwh_km, crs_meters='EPSG:2154', crs_angles='EPSG:4326'):
+
+    # On passe tout en metrique
+    gdf_city_carreau = gdf_city_carreau.to_crs(crs_meters).reset_index(drop=True)
+    df_od = df_od.to_crs(crs_meters)
+    df_od['route'] = df_od['route'].to_crs(crs_meters)
+
+    # On initialise à 0 les demandes pour chaque carreau
+    gdf_city_carreau['demand_km_ev'] = 0.
+
+    # Pour chaque voyage, on calcule la longueur interceptée par tous les carreaux + la longueur interceptée par carreau
+    # On associe la distance (longueur_carreau / longueur_tous_les_carreaux) * distance_trajet comme demande en km pour chaque carreau
+    for _, trip in df_od.iterrows():
+        longueur_interceptee_carreaux = 0.
+        
+        # stocke les demandes temporaires (le temps de faire le calcul)
+        gdf_city_carreau['demand_km_ev_temp'] = 0.
+        
+        for idx_carreau, carreau in gdf_city_carreau.iterrows():
+            
+            # Intersecter la route avec le carreau
+            intersection_current_carreau = carreau['geometry'].intersection(trip['route'])
+            
+            # si le chemin passe par le carreau
+            if not intersection_current_carreau.is_empty:
+                
+                longueur_current_carreau = intersection_current_carreau.length
+                longueur_interceptee_carreaux += longueur_current_carreau 
+                
+                # gdf_city_carreau['demand_km_ev_temp'].iloc[idx_carreau] += (trip['distance_km'] * trip['cnt'] * ratio_ev * longueur_current_carreau) # déja en km
+                gdf_city_carreau.loc[idx_carreau, 'demand_km_ev_temp'] += (trip['distance_km'] * trip['cnt'] * ratio_ev * longueur_current_carreau) # déja en km
+        
+        gdf_city_carreau['demand_km_ev_temp'] /= longueur_interceptee_carreaux
+        gdf_city_carreau['demand_km_ev'] += gdf_city_carreau['demand_km_ev_temp']                
+
+    gdf_city_carreau['demand_traffic_kWh'] = gdf_city_carreau['demand_km_ev'] * conso_kwh_km
+    gdf_city_carreau.drop(columns=['demand_km_ev', 'demand_km_ev_temp'], inplace=True)
+
+    # crs en angles
+    gdf_city_carreau = gdf_city_carreau.to_crs(crs_angles)  # Reprojection en CRS projeté (en mètres)
+
+    return gdf_city_carreau
+
 def restrict_area(gdf_od, resticted_dist_km=150, crs_meters="EPSG:2154", crs_angles="EPSG:4326"):
     
     # Passer en crs metriques pour calculer des longueurs / surfaces 
