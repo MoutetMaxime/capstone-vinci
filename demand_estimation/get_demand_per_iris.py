@@ -8,7 +8,7 @@ from shapely.geometry import LineString
 
 from utils_data import get_contours_city_ign, get_iris_contours_city, add_population_iris, get_vehicles_city 
 from utils_data import get_adjacency_from_gdf, get_centroids_communes, get_contours_city_simplifie, get_df_OD_city, restrict_area, get_routing, get_traffic_demand_per_iris
-from utils_data import merge_iris_pop_and_traffic, add_revenus_iris, add_area_gdf
+from utils_data import merge_iris_pop_and_traffic, add_revenus_iris, add_area_gdf, compute_routes_OD
 
 data_dir = '../data'
 
@@ -62,6 +62,7 @@ export_file_iris_traffic_demand = f"{processed_dir}/traffic_demand_per_iris_{cod
 export_file_iris_all_demand = f"{processed_dir}/all_demand_per_iris_{code_insee}.geojson"
 export_file_df_adjacency=f"{processed_dir}/gdf_city_iris_with_dist_{code_insee}.csv"
 export_file_np_adjacency=f"{processed_dir}/adjacency_matrix_iris_{code_insee}.npy"
+export_file_OD_routes = f"{processed_dir}/processed_OD_{code_insee}.parquet"
 
 # Creation des fichiers
 gdf_ign_city, geometry_ign_city = get_contours_city_ign(file_ign_region, code_insee)
@@ -105,15 +106,23 @@ if not os.path.exists(export_file_iris_traffic_demand):
     gdf_full = get_centroids_communes(file_contours_simplifies, df_traffic_city, centroid_city)
     gdf_filtered, restricted_area = restrict_area(gdf_full, restricted_distance_km)
 
-    # Get routes and distances between 
-    gdf_filtered["routing"] = gdf_filtered.apply(lambda row: get_routing(row["centroid_hab"].coords[0], row["centroid_lt"].coords[0], delay=waiting_time_api), axis=1)
-    gdf_filtered["route"] = gdf_filtered["routing"].apply(lambda row: LineString(row["geometry"]["coordinates"]))
-    gdf_filtered["route"] = gpd.GeoSeries(gdf_filtered["route"], crs=crs_angles)
-    gdf_filtered["distance_km"] = gdf_filtered["routing"].apply(lambda row: row["distance"])
-    gdf_filtered.drop(columns=['routing'], inplace=True)
-    gdf_filtered = gdf_filtered.set_geometry('route')
+    # Get routes and distances using API
+    if not os.path.exists(export_file_OD_routes):
+        gdf_filtered = compute_routes_OD(gdf_filtered, export_file_OD_routes, waiting_time_api=0.1, crs_angles='EPSG:4326')
 
-    gdf_iris_traffic, gdf_final_od = get_traffic_demand_per_iris(gdf_filtered, gdf_contours_city, gdf_iris, ratio_ev_france, conso_kwh_km)
+        # Ancien code, mis dans la fct 
+        # gdf_filtered["routing"] = gdf_filtered.apply(lambda row: get_routing(row["centroid_hab"].coords[0], row["centroid_lt"].coords[0], delay=waiting_time_api), axis=1)
+        # gdf_filtered["route"] = gdf_filtered["routing"].apply(lambda row: LineString(row["geometry"]["coordinates"]))
+        # gdf_filtered["route"] = gpd.GeoSeries(gdf_filtered["route"], crs=crs_angles)
+        # gdf_filtered["distance_km"] = gdf_filtered["routing"].apply(lambda row: row["distance"])
+        # gdf_filtered.drop(columns=['routing'], inplace=True)
+        # gdf_filtered = gdf_filtered.set_geometry('route')
+
+    else:
+        # gdf_od_filtered = gpd.read_file(export_file_OD_routes)
+        gdf_filtered = gpd.read_parquet(export_file_OD_routes)
+
+    gdf_iris_traffic = get_traffic_demand_per_iris(gdf_filtered, gdf_contours_city, gdf_iris, ratio_ev_france, conso_kwh_km)
     gdf_iris_traffic.to_file(export_file_iris_traffic_demand, driver="GeoJSON")
     
     print(f"Demand related to traffic saved at : {export_file_iris_traffic_demand}")

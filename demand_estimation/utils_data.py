@@ -467,7 +467,7 @@ def get_traffic_demand_per_iris(df_od, gdf_city_contours, gdf_city_iris, ratio_e
     df_od = df_od.to_crs(crs_angles)
     df_od['route'] = df_od['route'].to_crs(crs_angles)
 
-    return gdf_city_iris, df_od
+    return gdf_city_iris
 
 # Généralisation de la fonction pour les IRIS (car ici les carreaux ne couvrent pas toute la ville)
 # Au lieu de normaliser par la distance de route qui passe par la ville, on normalise par la distance de route qui passe par les carreaux
@@ -600,6 +600,21 @@ def get_df_OD_city(file_OD, code_insee):
     df_city_voit_unique = df_city_voit_unique.rename(columns={'size': 'cnt'})
 
     return df_city_voit_unique
+
+def compute_routes_OD(gdf_od, export_file, waiting_time_api=0.1, crs_angles='EPSG:4326'):
+
+    # Compute the route and distance for the od matrices of the city
+    gdf_od["routing"] = gdf_od.apply(lambda row: get_routing(row["centroid_hab"].coords[0], row["centroid_lt"].coords[0], delay=waiting_time_api), axis=1)
+    gdf_od["route"] = gdf_od["routing"].apply(lambda row: LineString(row["geometry"]["coordinates"]))
+    gdf_od["route"] = gpd.GeoSeries(gdf_od["route"], crs=crs_angles)
+    gdf_od["distance_km"] = gdf_od["routing"].apply(lambda row: row["distance"])
+    gdf_od.drop(columns=['routing'], inplace=True)
+    gdf_od = gdf_od.set_geometry('route')
+    
+    # gdf_od.to_file(export_file, driver="GeoJSON")
+    gdf_od.to_parquet(export_file)
+
+    return gdf_od
 
 def add_area_gdf(gdf, crs_meters='EPSG:2154', crs_angles='EPSG:4326'):
     gdf = gdf.to_crs(crs_meters)  # Example: Setting to WGS84 (latitude/longitude)
