@@ -375,7 +375,7 @@ def get_vehicles_city(code_insee, files_vehicles, preprocessed_files_vehicles, e
 
     print("Processing vp...")
     if os.path.exists(preprocessed_file_vp):
-        vp = pd.read_excel(preprocessed_file_vp)
+        vp_city = pd.read_excel(preprocessed_file_vp)
     else:
         vp = pd.read_excel(file_vp, header=3,)
         vp = vp.rename(columns={'2 024': 2024})
@@ -384,7 +384,7 @@ def get_vehicles_city(code_insee, files_vehicles, preprocessed_files_vehicles, e
 
     print("Processing vul...")
     if os.path.exists(preprocessed_file_vul):
-        vul = pd.read_excel(preprocessed_file_vul)
+        vul_city = pd.read_excel(preprocessed_file_vul)
     else:
         vul = pd.read_excel(file_vul, header=3,)
         vul_city = vul[vul['Code commune de résidence'] == code_insee]
@@ -392,7 +392,7 @@ def get_vehicles_city(code_insee, files_vehicles, preprocessed_files_vehicles, e
 
     print("Processing pl...")
     if os.path.exists(preprocessed_file_pl):
-        pl = pd.read_excel(preprocessed_file_pl)
+        pl_city = pd.read_excel(preprocessed_file_pl)
     else:
         pl = pd.read_excel(file_pl, header=3,)
         pl_city = pl[pl['Code commune de résidence'] == code_insee]
@@ -400,7 +400,7 @@ def get_vehicles_city(code_insee, files_vehicles, preprocessed_files_vehicles, e
 
     print("Processing tcp...")
     if os.path.exists(preprocessed_file_tcp):
-        tcp = pd.read_excel(preprocessed_file_tcp)
+        tcp_city = pd.read_excel(preprocessed_file_tcp)
     else:
         tcp = pd.read_excel(file_tcp, header=3)
         tcp_city = tcp[tcp['Code commune de résidence'] == code_insee]
