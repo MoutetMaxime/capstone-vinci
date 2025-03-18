@@ -91,6 +91,9 @@ class EVCSPP:
         """
         # Initialize all nodes to 0
         solution = np.zeros(self.nodes, dtype=int)
+        # Set initial solution with nodes in the given list set to 1
+        #initial_indices = [9,37,62,96,100,135,152,156,157,166,184,211,212,218,219,220,246,247,248,276,313]
+        #solution[initial_indices] = 1
 
         # Continue adding nodes until the demand is satisfied or we reach the maximum number of nodes
         while np.sum(solution) < k:
