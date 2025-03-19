@@ -121,7 +121,8 @@ class EVCSPP:
                 print("The total demand is satisfied")
                 break
         
-        print("Maximum number of charging points was placed")
+        if np.sum(solution) == k:
+            print("Maximum number of charging points was placed")
         
         return solution
     
@@ -180,7 +181,8 @@ class EVCSPP:
                 print("The total demand is satisfied")
                 break
         
-        print("Maximum number of charging points was placed")
+        if np.sum(solution) == k:
+            print("Maximum number of charging points was placed")
         
         return solution
 

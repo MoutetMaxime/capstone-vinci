@@ -1,10 +1,7 @@
-from urllib.parse import urlencode
 import geopandas as gpd
 import numpy as np
-import requests
 from Evcspp_0sol_existing_cs import EVCSPP
-from utils import create_nodes
-
+import os
 
 def get_demands_from_pop(gdf):
     return np.array(gdf["population"])
@@ -47,7 +44,7 @@ def get_existing_cs(gdf):
 
 input_file = "../data/processed/44055/200/gdf_city_with_dist.gpkg"
 adjacency_file = "../data/processed/44055/200/adjacency_matrix.npy"
-export_file = "results_eliott/existing_stations.csv"
+
 
 # nodes est une list de dictionnaire avec les attributs qui permettent de récupérer la demande, la capacité, ...
 gdf = gpd.read_file(input_file)
@@ -68,8 +65,13 @@ costs = get_fixed_cost(gdf)
 capacities = get_capacity_kWh(gdf)
 
 # Prendre en compte ou non les bornes existantes
+# export_file = "results_with_cs/existing_stations.csv"
 # existing_cs = get_existing_cs(gdf)
+
+export_file = "results_with_cs/no_existing_stations.csv"
 existing_cs = np.array([0 for i in range(len(gdf))])
+
+os.makedirs(os.path.dirname(export_file), exist_ok=True)
 
 # Profit par kWh délivré
 profit_per_kWh = 0.10 # 22kWh
@@ -91,7 +93,7 @@ results = []
 Ds = [15]
 alphas = [0.1]
 
-print(existing_cs)
+# print(existing_cs)
 
 for D in Ds:
     for alpha in alphas:
@@ -100,7 +102,7 @@ for D in Ds:
         # result = solution.greedy_algorithm(alpha, k)
         result = solution.greedy_algorithm_profitable(alpha, k)
         reached_demand = solution.calculate_reached_demand(result, existing_cs, alpha)
-        optimized_func = -costs @ result
+        optimized_func = - costs @ result
         final_profit = reached_demand * profit_per_kWh - costs @ result 
 
         print("Solution: ", result)
@@ -109,14 +111,17 @@ for D in Ds:
         print(f"Profit final : {final_profit}€/jour")
         print("Nombre de stations :", np.sum(result))
 
-         # Save
+        # Save
         results.append(
              {
                  "D": D,
                  "alpha": alpha,
+                 "k": k,
                  "result": result,
                  "optimized_func": optimized_func,
                  "nb_stations": np.sum(result),
+                 "profit": final_profit, 
+                 "existing_cs": existing_cs
              }
          )
 
