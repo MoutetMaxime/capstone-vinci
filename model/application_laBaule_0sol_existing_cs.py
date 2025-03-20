@@ -42,43 +42,71 @@ def get_capacity_kWh(gdf, puissance=22):
 def get_existing_cs(gdf):
     return np.array(gdf["nb_pdc"])
 
-input_file = "../data/processed/44055/200/gdf_city_with_dist.gpkg"
-adjacency_file = "../data/processed/44055/200/adjacency_matrix.npy"
+zone = "200"
+if zone=="200":
+    input_file = "../data/processed/44055/200/gdf_city_with_dist.gpkg"
+    adjacency_file = "../data/processed/44055/200/adjacency_matrix.npy"
+elif zone =="1km":
+    input_file = "../data/processed/44055/1km/gdf_city_with_dist.gpkg"
+    adjacency_file = "../data/processed/44055/1km/adjacency_matrix.npy"
+else:
+    input_file = "../data/processed/44055/iris/gdf_city_with_dist.gpkg"
+    adjacency_file = "../data/processed/44055/iris/adjacency_matrix.npy"
+
 
 
 # nodes est une list de dictionnaire avec les attributs qui permettent de récupérer la demande, la capacité, ...
 gdf = gpd.read_file(input_file)
 
-# Demande en population ou en kWh
-# demands = get_demands_from_pop(gdf)
-demands = get_demands_kWh(gdf)
-
-
 # Coûts définis de plusieurs manières
 costs = get_fixed_cost(gdf)
-# costs = get_costs_by_charge(nodes)
-# costs = get_costs_by_kWh(nodes)
+
+use_kWh = True
+use_existing_cs = False
+# use_existing_cs = True
+
+if use_kWh:
+    # Demande en kWh
+    demands = get_demands_kWh(gdf)
+    # costs = get_costs_by_kWh(nodes) # not used here
+    capacities = get_capacity_kWh(gdf)
+
+else:
+    # Demande en population ou en kWh
+    demands = get_demands_from_pop(gdf)
+    # costs = get_costs_by_charge(nodes)
+    capacities = get_capacities(gdf)
 
 
-# Capacité définie de plusieurs manières
-# capacities = get_capacities(gdf)
-capacities = get_capacity_kWh(gdf)
-
-# Prendre en compte ou non les bornes existantes
-# export_file = "results_with_cs/existing_stations.csv"
-# existing_cs = get_existing_cs(gdf)
-
-export_file = "results_with_cs/no_existing_stations.csv"
-existing_cs = np.array([0 for i in range(len(gdf))])
-
-os.makedirs(os.path.dirname(export_file), exist_ok=True)
+if use_existing_cs:
+    # Prendre en compte les bornes existantes
+    existing_cs = get_existing_cs(gdf)
+else:
+    # Ne pas prendre en compte les bornes existantes
+    existing_cs = np.array([0 for i in range(len(gdf))])
 
 # Profit par kWh délivré
 profit_per_kWh = 0.10 # 22kWh
 # profit_per_kWh = 0.15 # 60kWh
 # profit_per_kWh = 0.20 # 120kWh
 
+# Profit par recharge
+profit_per_charge = 20
+
 adjacency = np.load(adjacency_file)
+
+
+
+k = 20
+# Ds = np.linspace(10, 60, 10)
+# alphas = np.linspace(0.1, 0.6, 20)
+
+# Pour avoir alpha*D = [1km, 3km, 5km]
+Ds = [15]
+alphas = [1/15, 1/5, 1/3]
+
+export_file = f"results_with_cs/profitable/{zone}_with_cs_{use_existing_cs}_{k}max_kWh_{use_kWh}.csv"
+os.makedirs(os.path.dirname(export_file), exist_ok=True)
 
 # Paramètres
 # print(demands)
@@ -86,23 +114,21 @@ adjacency = np.load(adjacency_file)
 # print(capacities)
 # print(adjacency)
 
-k = 10
-Ds = np.linspace(10, 60, 10)
-alphas = np.linspace(0.1, 0.6, 20)
+print(f"Use existing cs {use_existing_cs}")
+print(f"Use kWh: {use_kWh}")
+
 results = []
-Ds = [15]
-alphas = [0.1]
-
-# print(existing_cs)
-
 for D in Ds:
     for alpha in alphas:
-        print(f"D = {D}, alpha = {alpha}, k = {k}")
+        print(f"\n\nD = {D}, alpha = {alpha}, k = {k}")
         solution = EVCSPP(adjacency, costs, demands, capacities, existing_cs, D, profit_per_kWh)
         # result = solution.greedy_algorithm(alpha, k)
         result = solution.greedy_algorithm_profitable(alpha, k)
-        reached_demand = solution.calculate_reached_demand(result, existing_cs, alpha)
+        # reached_demand = solution.calculate_reached_demand(result, existing_cs, alpha)
+        reached_demand = solution.calculate_reached_demand_saturated(result, existing_cs, alpha)
         optimized_func = - costs @ result
+        
+        # Ici on calcule toujours pour kWh, à généraliser pour une demande en population
         final_profit = reached_demand * profit_per_kWh - costs @ result 
 
         print("Solution: ", result)

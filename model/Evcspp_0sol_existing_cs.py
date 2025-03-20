@@ -126,7 +126,7 @@ class EVCSPP:
         
         return solution
     
-    # Critère supplémentaire : on ajoute une nouvelle borne seulement si elle garde un profit positif  
+    # Critère supplémentaire : on ajoute une nouvelle borne seulement si elle améliore le profit 
     def greedy_algorithm_profitable(self, alpha: float, k: int, verbose=False):
         """
         Executes the greedy algorithm to solve the EVCSPP.
@@ -136,12 +136,12 @@ class EVCSPP:
 
         # Initialize all nodes to 0
         solution = np.zeros(self.n_nodes, dtype=int)
-        current_profit = 0
+        best_profit = 0
 
-        if self.is_demand_satisfied(solution, self.existing_cs, alpha):
-            print('The demand is already satisfied by the existing stations')
-            return solution
-
+        # Stop if the demand is already satisfied (as in HK) : not necessarly interesting
+        # if self.is_demand_satisfied(solution, self.existing_cs, alpha):
+        #     print('The demand is already 'satisfied' by the existing stations')
+        #     return solution
         
         # Continue adding nodes until the demand is satisfied or we reach the maximum number of nodes
         while np.sum(solution) < k:
@@ -150,7 +150,7 @@ class EVCSPP:
 
             # Find the best node to add in order to improve profit
             best_node_idx = None
-            best_profit = current_profit
+            # best_profit = current_profit
             
             for i_node in range(self.n_nodes):
                
@@ -158,7 +158,8 @@ class EVCSPP:
                 solution[i_node] += 1
                 
                 # Calculate the profit that comes with this new configuration
-                demand_reached = self.calculate_reached_demand(solution, self.existing_cs, alpha)
+                # demand_reached = self.calculate_reached_demand(solution, self.existing_cs, alpha)
+                demand_reached = self.calculate_reached_demand_saturated(solution, self.existing_cs, alpha)
                 temp_profit = demand_reached*self.profit_per_kWh - self.costs @ solution
 
                 # Revert the change
@@ -174,16 +175,19 @@ class EVCSPP:
                 break
 
             # Add one charging point to the node
+            print(f"Best node at step {np.sum(solution)} : {best_node_idx}")
+            print(f"Profit : {best_profit}")
             solution[best_node_idx] += 1
-
-            # Check if the demand is satisfied
+            
+            # Stop if the demand is already satisfied (as in the HK paper): not necessarly interesting for us
             if self.is_demand_satisfied(solution, self.existing_cs, alpha):
-                print("The total demand is satisfied")
-                break
+                print("The total demand is 'satisfied'")
+            #     break
         
         if np.sum(solution) == k:
             print("Maximum number of charging points was placed")
-        
+    
+
         return solution
 
     
@@ -206,6 +210,32 @@ class EVCSPP:
             else:
                 total_capacity = our_capacity + existing_cs_capacity
                 our_reached_demand += self.demands[i] * (our_capacity/total_capacity)
+
+        return our_reached_demand
+    
+    def calculate_reached_demand_saturated(self, solution: np.array, existing_cs: np.array, alpha: float):
+        """
+        Calculates the total reached demand for the given solution and with respect to existing charging stations.
+        """
+        our_reached_demand = 0
+        
+        for i in range(self.n_nodes):
+            # capacité totale de nos bornes et des bornes existantes pour servir ce noeud 
+            our_capacity = sum([self.capacities[idx_node] * solution[idx_node] for idx_node in self.get_close_indices(i, alpha)])
+            existing_cs_capacity = sum([self.capacities[idx_node] * existing_cs[idx_node] for idx_node in self.get_close_indices(i, alpha)])
+
+            # si la demande n'est pas saturée, chacun peut y capter son maximum
+            if our_capacity + existing_cs_capacity <= self.demands[i]:
+                our_reached_demand += our_capacity
+            
+            # si la demande est saturée, on suppose que la demande est répartie équitablement
+            else:
+                total_capacity = our_capacity + existing_cs_capacity
+                our_reached_demand += self.demands[i] * (our_capacity/total_capacity)
+
+        # on ne peut pas capter + de demande que notre capacité totale
+        our_full_capacity = solution @ self.capacities
+        our_reached_demand = min(our_reached_demand, our_full_capacity)
 
         return our_reached_demand
 
