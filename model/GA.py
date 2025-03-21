@@ -201,32 +201,33 @@ class ChargingStationGA:
                 demand_satisfaction.append(satisfaction_percentage * 100)  # Store as percentage
             else:
                 demand_satisfaction.append(0)  # No station, no demand satisfied
-                
+            
+
         return total_profit, demand_satisfaction
-    
+
     def _calculate_coverage(self, chromosome: np.ndarray) -> float:
         """Calculate coverage score based on reachability within max_distance."""
         # Identify locations with at least one station (ours or competitors)
         our_station_locations = np.where(chromosome > 0)[0]
         competitor_locations = list(self.existing_stations.keys())
         all_station_locations = list(set(our_station_locations) | set(competitor_locations))
-        
+
         if len(all_station_locations) == 0:
             return 0
-        
+
         # For each location, check if it's covered by any station
         weighted_coverage = 0
         total_demand = sum(self.demands)
-        
+
         for i in range(self.num_locations):
             # Check if this location is within range of a station
             is_covered = False
-            
+
             for station_idx in all_station_locations:
                 if self.distance_matrix[i, station_idx] <= self.max_distance:
                     is_covered = True
                     break
-            
+
             if is_covered:
                 # Only count our coverage for our market share
                 if i in our_station_locations:
@@ -237,19 +238,19 @@ class ChargingStationGA:
                     weighted_coverage += self.demands[i] * our_market_share
                 elif i not in competitor_locations:  # Area covered by our network but no station here
                     weighted_coverage += self.demands[i]
-        
+
         # Normalize coverage score
         normalized_coverage = weighted_coverage / total_demand * 100 if total_demand > 0 else 0
         return normalized_coverage
-    
+
     def select_parents(self, fitness_results: List[Tuple[int, float]]) -> List[np.ndarray]:
         """Select parents for reproduction using tournament selection."""
         parents = []
-        
+
         # Keep elite individuals
         for i in range(min(self.elite_size, len(fitness_results))):
             parents.append(self.population[fitness_results[i][0]])
-        
+
         # Tournament selection for the rest
         while len(parents) < self.population_size:
             # Select random individuals for tournament
@@ -372,6 +373,7 @@ class ChargingStationGA:
         print(f"\nOptimization complete after {self.max_generations} generations")
         print(f"Best solution fitness: {self.best_fitness:.2f}")
         print(f"Best profit: {best_profit:.2f}")
+        print(f"Total demand satisfied: {np.sum([d * s for d, s in zip(self.demands, best_demand_satisfaction)]) / sum(self.demands):.2f}%")
         print(f"Best coverage: {best_coverage:.2f}")
         print(f"Total stations: {np.sum(self.best_solution)}")
         
@@ -402,7 +404,7 @@ class ChargingStationGA:
             "locations_used": locations_used,
             "solution": self.best_solution,
             "fitness_history": self.fitness_history,
-            "demand_satisfaction": best_demand_satisfaction
+            "demand_satisfaction": np.sum([d * s for d, s in zip(self.demands, best_demand_satisfaction)]) / sum(self.demands)
         }
         
         return self.best_solution, result_stats
