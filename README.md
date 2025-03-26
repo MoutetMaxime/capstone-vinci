@@ -26,8 +26,8 @@ Our results align well with existing station locations and expected profitabilit
 
 1. Clone the repository:  
    ```bash
-   git clone https://github.com/username/repository.git
-
+   git clone https://github.com/MoutetMaxime/capstone-vinci.git
+   
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt 
