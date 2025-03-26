@@ -9,16 +9,16 @@
         1,
         1
     ],
-    "actual_coverage": 1622000.644787525,
-    "actual_capacity": 5192.4893236751095,
+    "profit": 103838.8275693926,
+    "demand_satisfaction": 32.01286843110535,
     "parameters": {
         "population_size": 100,
         "mutation_rate": 0.2,
         "crossover_rate": 0.8,
         "elite_size": 10,
         "max_generations": 100,
-        "max_distance": 2,
-        "station_capacity_kWh": 480,
+        "max_distance": 1,
+        "station_capacity_kWh": 264,
         "station_capacity_pop": 1038.497864735022,
         "max_total_stations": 5,
         "max_stations_per_location": 5

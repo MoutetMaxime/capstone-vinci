@@ -2,23 +2,23 @@
     "zone": "iris",
     "demand": "pop",
     "solution": [
-        1,
         0,
         0,
         0,
         0,
-        0
+        0,
+        1
     ],
-    "actual_coverage": 415032.2825502633,
-    "actual_capacity": 1038.497864735022,
+    "profit": 20758.99839059085,
+    "demand_satisfaction": 6.402573686221071,
     "parameters": {
         "population_size": 100,
         "mutation_rate": 0.2,
         "crossover_rate": 0.8,
         "elite_size": 10,
         "max_generations": 100,
-        "max_distance": 2,
-        "station_capacity_kWh": 480,
+        "max_distance": 1,
+        "station_capacity_kWh": 264,
         "station_capacity_pop": 1038.497864735022,
         "max_total_stations": 1,
         "max_stations_per_location": 5
