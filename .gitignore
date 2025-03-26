@@ -1,3 +1,6 @@
 data/BDCARTO
 data/Filosofi2017_carreaux_1km_met.gpkg
 data/Filosofi2017_carreaux_200m_met.gpkg
+data/IRIS/
+data/RP2020_MOBPRO_csv/
+model/__pycache__/
