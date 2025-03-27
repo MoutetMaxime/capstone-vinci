@@ -81,7 +81,7 @@ After estimating demand, define the data source and run optimization algorithms 
 
 ### **Greedy Model & Demand Coverage**
 - The calculation of reached demand for a given station configuration could be improved.
-- In the script for the 200mx200m, route-based distances should be used instead of Euclidean distances. However, this was not done due to excessive API usage and limited time to do it properly.
+- In the script for the 200mx200m, route-based distances between zones should be used instead of Euclidean distances. However, this was not done due to excessive API usage and limited time to do it properly.
 
 ### **General Enhancements**
 
